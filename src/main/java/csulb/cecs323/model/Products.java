@@ -1,9 +1,6 @@
 package csulb.cecs323.model;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.NamedNativeQuery;
+import javax.persistence.*;
 /*
  * Licensed under the Academic Free License (AFL 3.0).
  *     http://opensource.org/licenses/AFL-3.0
@@ -15,6 +12,8 @@ import javax.persistence.NamedNativeQuery;
  *  2021 David Brown <david.brown@csulb.edu>
  *
  */
+
+@SqlResultSetMapping(name = "updateResult", columns = {@ColumnResult(name = "count")})
 
 @NamedNativeQuery(
         name="ReturnProduct",
@@ -39,6 +38,15 @@ import javax.persistence.NamedNativeQuery;
                 "WHERE  UPC = ? AND units_in_stock >= ? ",
         resultClass = Products.class
 )
+
+@NamedNativeQuery(
+        name="ChangeStockNumber",
+        query = "UPDATE products " +
+                "SET units_in_stock = ? " +
+                "WHERE UPC = ? ",
+        resultSetMapping = "updateResult"
+)
+
 /** Something that we stock, that the customer can order. */
 @Entity
 public class Products {

@@ -19,11 +19,8 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityTransaction;
 import javax.persistence.Persistence;
-import java.sql.Time;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
 import java.util.logging.Logger;
@@ -105,13 +102,12 @@ public class CustomerOrders {
       customerOrders.createEntity (products);
       customerOrders.createEntity(customers);
       tx.commit();
-      Scanner in = new Scanner(System.in);
 
+      Scanner in = new Scanner(System.in);
       boolean go = true;
 
       while(go)
       {
-
          System.out.println("Starting an order! ... ");
          System.out.println("(0)Begin or (1)Exit program:");
          int terminate = in.nextInt();
@@ -139,7 +135,7 @@ public class CustomerOrders {
 
                if(!order_lines.isEmpty()){
                   for(Order_lines orderLine : order_lines){
-                     System.out.println(orderLine);
+                     System.out.println(orderLine.getProduct().getProd_name() + " " + orderLine.getQuantity() + " " + orderLine.getUnit_sale_price());
                   }
                }
 
@@ -159,12 +155,10 @@ public class CustomerOrders {
                //you already ordered it.
 
                // Get quantity
-
-               // Select quantity
                System.out.println("Enter Quantity: ");
                int quantity = in.nextInt();
 
-               // Check if the quantity is within inStockNumber
+               // Validate quantity
                if (!customerOrders.checkInStock(productForOrder.getUPC(), quantity)) {
                   //ask if they want the rest
                   System.out.println("0: Want All");
@@ -206,34 +200,30 @@ public class CustomerOrders {
                   System.out.println("AHHHHHH! it's less");
                   //DO NOT PERSIST THIS STUFF. THESE ARE PARALLEL ARRAYS. MAN.
                   //USE INFO TO PERSIST NEW PRODUCTS MADE FROM THIS INFO. (Don't persist the products?)
-                  order_lines.add(new Order_lines(order, productForOrder, quantity, productForOrder.getUnit_list_price()));
                   //Not sure if we're adding money here.
                   orderUnitPrice.add(3.00);
                }
 
+               // Create order lines
+               order_lines.add(new Order_lines(order, productForOrder, quantity, productForOrder.getUnit_list_price()));
+
                System.out.println("Order another product? 0(no) 1(yes)");
                int endProductCycle = in.nextInt();
 
-               //
+               // Customer is finished with ordering products
                if (endProductCycle == 0) {
                   productsGo = false;
                   if (!orderProducts.isEmpty()) {
+                     tx.begin();
+                     // Persist order to table
                      customerOrders.entityManager.persist(order);
-                     for (int i = 0; i < orderProducts.size(); i++) {
-                        Order_lines o = new Order_lines();
-                        o.setProduct(orderProducts.get(i));
-                        o.setOrder(order);
-                        o.setQuantity(orderQuantity.get(i));
-                        o.setUnit_sale_price(orderUnitPrice.get(i));
+                     tx.commit();
 
-                        //change quantity
-                        orderProducts.get(i).setUnits_in_stock(orderProducts.get(i).getUnits_in_stock()-orderQuantity.get(i));
-                        customerOrders.entityManager.persist(orderProducts.get(i));
-                        customerOrders.entityManager.persist(o);
+                     // Change the product stock in database
+                     for (Order_lines line : order_lines) {
+                        customerOrders.updateProductStock(line.getProduct().getUPC(), line.getProduct().getUnits_in_stock() - line.getQuantity());
                      }
                   }
-
-                  //tx.commit();
                }
             }//end of asking for products
          }//end of that if
@@ -347,7 +337,7 @@ public class CustomerOrders {
 
    /**Puts a list of all current products in database and lets you pick one.
     * Returns a single product object*/
-   public Products displayAllProducts(List<Products> productsInOrder)
+   public Products selectProduct(List<Products> productsInOrder)
    {
       List<Products> products = this.entityManager.createNamedQuery("ReturnProducts",
               Products.class).getResultList();
@@ -415,6 +405,12 @@ public class CustomerOrders {
          currentDate = LocalDateTime.now();
       }
       return new Orders(cust,currentDate,"Shirley");
+   }
 
+   public void updateProductStock(String UPC, int newStockNumber)
+   {
+      this.entityManager.createNamedQuery("changeStockNumber", Products.class)
+              .setParameter(1, newStockNumber)
+              .setParameter(2, UPC).executeUpdate();
    }
 } // End of CustomerOrders class

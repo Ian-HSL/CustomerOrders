@@ -18,22 +18,22 @@ import java.util.Objects;
 @Entity
 @IdClass(Orders_pk.class)
 /**
-A request by a Customer for a collection of one or more
-Products.  The Order includes a quantity of each Product
-within the order.
+ A request by a Customer for a collection of one or more
+ Products.  The Order includes a quantity of each Product
+ within the order.
  */
 public class Orders {
     @Id
     @ManyToOne
     // I could easily have left the @JoinColumn annotation out
     @JoinColumn(name="customer_id",
-    referencedColumnName = "customer_id")
+            referencedColumnName = "customer_id")
     /** The individual placing the order */
     private Customers customer;
     @Id
     @Column(nullable=false)
     /** When they placed it.  This allows us to distinguish
-    one order from another by the same customer.
+     one order from another by the same customer.
      */
     private LocalDateTime order_date;
     // make this just a string for now.  Perhaps recast Customer to "Person" and make soldby
