@@ -16,14 +16,29 @@ import javax.persistence.NamedNativeQuery;
  *
  */
 
-@Entity
+@NamedNativeQuery(
+        name="CheckInStock",
+        query = "SELECT * " +
+                "FROM   PRODUCTS " +
+                "WHERE  UPC = ? AND units_in_stock >= ? ",
+        resultClass = Products.class
+)
+
 @NamedNativeQuery(
         name="ReturnProduct",
         query = "SELECT * " +
                 "FROM   PRODUCTS " +
-                "WHERE  url = ? ",
+                "WHERE  UPC = ? ",
         resultClass = Products.class
 )
+@NamedNativeQuery(
+        name="ReturnProducts",
+        query = "SELECT * " +
+                "FROM   PRODUCTS "
+        ,
+        resultClass = Products.class
+)
+
 /** Something that we stock, that the customer can order. */
 public class Products {
     @Id

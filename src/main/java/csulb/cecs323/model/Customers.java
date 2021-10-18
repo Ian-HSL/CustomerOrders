@@ -14,6 +14,13 @@ import java.util.Objects;
  *
  */
 
+@NamedNativeQuery(
+        name="ReturnCustomers",
+        query = "SELECT * " +
+                "FROM   CUSTOMERS ",
+        resultClass = Customers.class
+)
+
 @Entity
 // I could have avoided uniqueConstraints and just done
 // one constraint, but this was more fun.

@@ -19,8 +19,13 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityTransaction;
 import javax.persistence.Persistence;
+import java.sql.Time;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Scanner;
 import java.util.logging.Logger;
 
 /**
@@ -87,11 +92,165 @@ public class CustomerOrders {
       // Load up my List with the Entities that I want to persist.  Note, this does not put them
       // into the database.
       products.add(new Products("076174517163", "16 oz. hickory hammer", "Stanely Tools", "1", 9.97, 50));
+      products.add(new Products("000000000001", "16 oz. spatula", "Waterfall Tools", "3", 3.50, 50));
+      products.add(new Products("076174533211", "16 oz. bolts", "Hardware Place", "10", 4.20, 50));
+      products.add(new Products("022222222222", "16 oz. anvil", "Drop Stuff", "2", 100.10, 50));
       // Create the list of owners in the database.
-      customerOrders.createEntity (products);
 
-      // Commit the changes so that the new data persists and is visible to other users.
+      List<Customers> customers = new ArrayList<Customers>();
+      customers.add(new Customers("Shirley", "Cho", "555-555-5555", "hello st", "91770"));
+      customers.add(new Customers("Shi", "C", "555-555-5554", "hello st", "91770"));
+      customers.add(new Customers("Shirl", "Ch", "555-555-5553", "hello st", "91770"));
+      customers.add(new Customers("Shelly", "Choo", "555-555-5552", "hello st", "91770"));
+
+      customerOrders.createEntity (products);
+      customerOrders.createEntity(customers);
+      //tx.commit();
+      Scanner in = new Scanner(System.in);
+
+      boolean go = true;
+
+      while(go)
+      {
+
+         System.out.println("Starting an order! ... ");
+         System.out.println("(0)Begin or (1)Exit program:");
+         int terminate = in.nextInt();
+         if(terminate == 0) {
+            // tx.begin();
+
+
+            //THESE SHOULD NOT BE PERSISTED EVER. TEMPORARY PARALLEL ARRAYS FOR FINAL ORDERED PRODUCTS/ORDERLINES.
+            List<Products> orderProducts = new ArrayList<Products>();
+            List<Integer> orderQuantity = new ArrayList<Integer>();
+            List<Double> orderUnitPrice = new ArrayList<Double>();
+
+            // Commit the changes so that the new data persists and is visible to other users.
+
+            //ask for customer identity and product identity
+            //System.out.println(customerOrders.getAllCustomers());
+            System.out.println("Hi: Who are you: Select number");
+            Customers customerForOrder = customerOrders.getAllCustomers();
+            //System.out.println(customerOrders.getAllProducts());
+            //Products productForOrder = customerOrders.getAllProducts(orderProducts);
+            //System.out.println(customerOrders.getOrderTime(customerForOrder));
+
+            //THIS SHOULD GET PERSISTED IF THE ORDER GOES THROUGH.
+            //ask to start order
+            System.out.println("Starting your order: ");
+            Orders order = customerOrders.getOrderTime(customerForOrder);
+            boolean productsGo = true;
+
+            while (productsGo) {
+
+               Products productForOrder = customerOrders.getAllProducts(orderProducts);
+               //TESTING IF I CAN POPULATE ORDERLINES AND STUFF
+//            customerOrders.entityManager.persist(order);
+//            Order_lines o = new Order_lines();
+//            o.setProduct(productForOrder);
+//            o.setOrder(order);
+//            o.setQuantity(10);
+//            o.setUnit_sale_price(3.2);
+//            System.out.println(o);
+//            customerOrders.entityManager.persist(o);
+               //
+
+               //Testing Check In Stock function and that you can print out product list again with missing product since
+               //you already ordered it.
+               System.out.println("AHHHHHH!");
+
+               System.out.println("Enter Quantity: ");
+               int quantity = in.nextInt();
+               System.out.println(customerOrders.checkInStock(productForOrder.getUPC(), quantity));
+               if (customerOrders.checkInStock(productForOrder.getUPC(), quantity) == null) {
+                  System.out.println("AHHHHHH! it's more");
+                  //ask if they want the rest
+                  System.out.println("0: Want All");
+                  //ask if they don't want the product
+                  System.out.println("1: Want None");
+                  //ask to abort
+                  System.out.println("2: Don't want to order anything anymore");
+                  //SELECT OPTION. ?switch case> >.> or something.
+                  System.out.println("Select:");
+                  int option = in.nextInt();
+                  switch (option) {
+                     //want all
+                     case 0: {
+                        System.out.println("I'm putting in all...");
+                        orderProducts.add(productForOrder);
+                        orderQuantity.add(productForOrder.getUnits_in_stock());
+                        orderUnitPrice.add(3.00);
+                        break;
+                     }
+                     //want none
+                     case 1: {
+                        System.out.println("I did not add this to your order...");
+                        //do nothing?
+                        break;
+
+
+                     }
+                     //want to stop ordering completely
+                     case 2: {
+                        System.out.println("Deleting your order...");
+                        orderProducts.clear();
+                        orderQuantity.clear();
+                        orderUnitPrice.clear();
+                        productsGo = false;
+                        break;
+                        //go = false;
+                        //tx.commit();
+                     }
+                  }
+               } else {
+                  System.out.println("AHHHHHH! it's less");
+                  //DO NOT PERSIST THIS STUFF. THESE ARE PARALLEL ARRAYS. MAN.
+                  //USE INFO TO PERSIST NEW PRODUCTS MADE FROM THIS INFO. (Don't persist the products?)
+                  orderProducts.add(productForOrder);
+                  orderQuantity.add(quantity);
+                  //Not sure if we're adding money here.
+                  orderUnitPrice.add(3.00);
+               }
+
+               System.out.println("Order another product? 0(yes) 1(no)");
+               int endProductCycle = in.nextInt();
+               if (endProductCycle == 1) {
+                  productsGo = false;
+                  if (!orderProducts.isEmpty()) {
+                     customerOrders.entityManager.persist(order);
+                     for (int i = 0; i < orderProducts.size(); i++) {
+                        Order_lines o = new Order_lines();
+                        o.setProduct(orderProducts.get(i));
+                        o.setOrder(order);
+                        o.setQuantity(orderQuantity.get(i));
+                        o.setUnit_sale_price(orderUnitPrice.get(i));
+
+                        //change quantity
+                        orderProducts.get(i).setUnits_in_stock(orderProducts.get(i).getUnits_in_stock()-orderQuantity.get(i));
+                        customerOrders.entityManager.persist(orderProducts.get(i));
+                        customerOrders.entityManager.persist(o);
+                     }
+                  }
+
+                  //tx.commit();
+               }
+
+
+            }//end of asking for products
+         }//end of that if
+         else if(terminate == 1)
+         {
+            go = false;
+         }
+
+
+
+
+         //tx.commit();
+      }//end of ordering loop
       tx.commit();
+
+
       LOGGER.fine("End of Transaction");
 
    } // End of the main method
@@ -137,4 +296,126 @@ public class CustomerOrders {
          return products.get(0);
       }
    }// End of the getStyle method
+
+
+   /**Checks if the product has the quantity. it returns the product back if it does, else returns null
+    * Precondition: We should already have the product object we want, but we pass in upc with product.getUPC
+    * RETURNS NULL IF QUANITY IS TOO HIGH. RETURNS THE PRODUCT FROM DATABASE BACK IF QUANITY IS FINE*/
+   public Products checkInStock (String UPC, int quantity) {
+      // Run the native query that we defined in the Products entity to find the right style.
+      List<Products> products = this.entityManager.createNamedQuery("CheckInStock",
+              Products.class).setParameter(1, UPC).setParameter(2,quantity).getResultList();
+      if (products.size() == 0) {
+         // Invalid style name passed in.
+         return null;
+      } else {
+         // Return the style object that they asked for.
+         return products.get(0);
+      }
+   }// End of the getStyle method
+
+
+
+
+   /**Puts a list of all current customers in database and lets you pick one.
+    * Returns a single customer object*/
+   public Customers getAllCustomers()
+   {
+      List<Customers> customers = this.entityManager.createNamedQuery("ReturnCustomers",
+              Customers.class).getResultList();
+
+      if(customers.size() == 0)
+      {
+         return null;
+      }
+      System.out.println("Customers:");
+      for (int i  = 0; i < customers.size(); i++)
+      {
+         System.out.println(i + " " + customers.get(i));
+      }
+
+      Scanner in = new Scanner(System.in);
+      int cust = -1;
+      while(cust < 0 || cust >= customers.size()) {
+         System.out.println("Enter Customer: ");
+         cust = in.nextInt();
+      }
+      System.out.println(cust + ": " + customers.get(cust));
+      return customers.get(cust);
+   }
+
+   /**Puts a list of all current products in database and lets you pick one.
+    * Returns a single product object*/
+   public Products getAllProducts(List<Products> productsInOrder)
+   {
+      List<Products> products = this.entityManager.createNamedQuery("ReturnProducts",
+              Products.class).getResultList();
+      if(products.size() == 0)
+      {
+         return null;
+      }
+      System.out.println("Products:");
+      int count = 0;
+      for (int i  = 0; i < products.size(); i++)
+      {
+         //only prints out products that were not in the products array list passed in
+         //cause we technically are ordering /have ordered these currently.
+         if(productsInOrder.contains(products.get(i)) )
+         {}
+         else {
+            System.out.println(i + " " + products.get(i));
+            count++;
+         }
+      }
+
+      //asks for product number from list in console.
+      Scanner in = new Scanner(System.in);
+      int prod = -1;
+      while(prod < 0 || prod >= products.size()) {
+         System.out.println("Enter Product: ");
+         prod = in.nextInt();
+      }
+
+      System.out.println(prod + ": " + products.get(prod));
+      return products.get(prod);
+   }
+
+   /**Takes in a customer and creates an Order object with constructor and localdate and time with soldby person
+    * Right now it mostly has default params tbh.
+    * REturns Order object back*/
+   public Orders getOrderTime(Customers cust)
+   {
+      //literally just defaults to current date and time. kind of confusing what he asked for us to do.
+      //since he said no future dates??
+      System.out.println("Order Date & Time: ");
+      LocalDateTime currentDate;
+      Scanner in = new Scanner(System.in);
+
+      int defaultTime = -1;
+      while(defaultTime != 0 && defaultTime != 1)
+      {
+         System.out.println("Default Present Time: 0(yes)/1(no)");
+         defaultTime = in.nextInt();
+
+
+      }
+      if(defaultTime == 0)
+      {
+         currentDate = LocalDateTime.now();
+      }
+      else
+      {
+         //int year = 0;
+//         int month= 0;
+//         int dayOfMonth = 0;
+//        Date d = new Date(year,month, dayOfMonth);
+//        Time t = new Time(12,5,3);
+//         currentDate = new LocalDateTime(d,t);
+         currentDate = LocalDateTime.now();
+      }
+      return new Orders(cust,currentDate,"Shirley");
+
+   }
+
+
 } // End of CustomerOrders class
