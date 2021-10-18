@@ -79,7 +79,6 @@ public class CustomerOrders {
       // Create an instance of CustomerOrders and store our new EntityManager as an instance variable.
       CustomerOrders customerOrders = new CustomerOrders(manager);
 
-
       // Any changes to the database need to be done within a transaction.
       // See: https://en.wikibooks.org/wiki/Java_Persistence/Transactions
 
@@ -105,7 +104,7 @@ public class CustomerOrders {
 
       customerOrders.createEntity (products);
       customerOrders.createEntity(customers);
-      //tx.commit();
+      tx.commit();
       Scanner in = new Scanner(System.in);
 
       boolean go = true;
@@ -119,31 +118,33 @@ public class CustomerOrders {
          if(terminate == 0) {
             // tx.begin();
 
-
             //THESE SHOULD NOT BE PERSISTED EVER. TEMPORARY PARALLEL ARRAYS FOR FINAL ORDERED PRODUCTS/ORDERLINES.
             List<Products> orderProducts = new ArrayList<Products>();
             List<Integer> orderQuantity = new ArrayList<Integer>();
             List<Double> orderUnitPrice = new ArrayList<Double>();
+            List<Order_lines> order_lines = new ArrayList<Order_lines>();
 
             // Commit the changes so that the new data persists and is visible to other users.
 
             //ask for customer identity and product identity
-            //System.out.println(customerOrders.getAllCustomers());
-            System.out.println("Hi: Who are you: Select number");
-            Customers customerForOrder = customerOrders.getAllCustomers();
-            //System.out.println(customerOrders.getAllProducts());
-            //Products productForOrder = customerOrders.getAllProducts(orderProducts);
-            //System.out.println(customerOrders.getOrderTime(customerForOrder));
+            Customers customer = customerOrders.selectCustomer(in);
 
             //THIS SHOULD GET PERSISTED IF THE ORDER GOES THROUGH.
             //ask to start order
             System.out.println("Starting your order: ");
-            Orders order = customerOrders.getOrderTime(customerForOrder);
+            Orders order = customerOrders.getOrderTime(customer);
             boolean productsGo = true;
 
             while (productsGo) {
 
-               Products productForOrder = customerOrders.getAllProducts(orderProducts);
+               if(!order_lines.isEmpty()){
+                  for(Order_lines orderLine : order_lines){
+                     System.out.println(orderLine);
+                  }
+               }
+
+               // Select product
+               Products productForOrder = customerOrders.selectProduct(in);
                //TESTING IF I CAN POPULATE ORDERLINES AND STUFF
 //            customerOrders.entityManager.persist(order);
 //            Order_lines o = new Order_lines();
@@ -153,17 +154,18 @@ public class CustomerOrders {
 //            o.setUnit_sale_price(3.2);
 //            System.out.println(o);
 //            customerOrders.entityManager.persist(o);
-               //
 
                //Testing Check In Stock function and that you can print out product list again with missing product since
                //you already ordered it.
-               System.out.println("AHHHHHH!");
 
+               // Get quantity
+
+               // Select quantity
                System.out.println("Enter Quantity: ");
                int quantity = in.nextInt();
-               System.out.println(customerOrders.checkInStock(productForOrder.getUPC(), quantity));
-               if (customerOrders.checkInStock(productForOrder.getUPC(), quantity) == null) {
-                  System.out.println("AHHHHHH! it's more");
+
+               // Check if the quantity is within inStockNumber
+               if (!customerOrders.checkInStock(productForOrder.getUPC(), quantity)) {
                   //ask if they want the rest
                   System.out.println("0: Want All");
                   //ask if they don't want the product
@@ -187,8 +189,6 @@ public class CustomerOrders {
                         System.out.println("I did not add this to your order...");
                         //do nothing?
                         break;
-
-
                      }
                      //want to stop ordering completely
                      case 2: {
@@ -206,15 +206,16 @@ public class CustomerOrders {
                   System.out.println("AHHHHHH! it's less");
                   //DO NOT PERSIST THIS STUFF. THESE ARE PARALLEL ARRAYS. MAN.
                   //USE INFO TO PERSIST NEW PRODUCTS MADE FROM THIS INFO. (Don't persist the products?)
-                  orderProducts.add(productForOrder);
-                  orderQuantity.add(quantity);
+                  order_lines.add(new Order_lines(order, productForOrder, quantity, productForOrder.getUnit_list_price()));
                   //Not sure if we're adding money here.
                   orderUnitPrice.add(3.00);
                }
 
-               System.out.println("Order another product? 0(yes) 1(no)");
+               System.out.println("Order another product? 0(no) 1(yes)");
                int endProductCycle = in.nextInt();
-               if (endProductCycle == 1) {
+
+               //
+               if (endProductCycle == 0) {
                   productsGo = false;
                   if (!orderProducts.isEmpty()) {
                      customerOrders.entityManager.persist(order);
@@ -234,8 +235,6 @@ public class CustomerOrders {
 
                   //tx.commit();
                }
-
-
             }//end of asking for products
          }//end of that if
          else if(terminate == 1)
@@ -243,16 +242,10 @@ public class CustomerOrders {
             go = false;
          }
 
-
-
-
          //tx.commit();
       }//end of ordering loop
       tx.commit();
-
-
       LOGGER.fine("End of Transaction");
-
    } // End of the main method
 
    /**
@@ -281,72 +274,80 @@ public class CustomerOrders {
     * same name, as the string that you pass in.  To create a new Cars instance, you need to pass
     * in an instance of Products to satisfy the foreign key constraint, not just a string
     * representing the name of the style.
-    * @param UPC        The name of the product that you are looking for.
+    * @param scanner        The name of the product that you are looking for.
     * @return           The Products instance corresponding to that UPC.
     */
-   public Products getProduct (String UPC) {
+   public Products selectProduct (Scanner scanner) {
       // Run the native query that we defined in the Products entity to find the right style.
-      List<Products> products = this.entityManager.createNamedQuery("ReturnProduct",
-              Products.class).setParameter(1, UPC).getResultList();
-      if (products.size() == 0) {
-         // Invalid style name passed in.
-         return null;
-      } else {
-         // Return the style object that they asked for.
-         return products.get(0);
-      }
-   }// End of the getStyle method
+      List<Products> products = this.entityManager.createNamedQuery("ReturnProducts",
+              Products.class).getResultList();
 
+      System.out.println("Products:");
+      for (int i  = 0; i < products.size(); i++)
+      {
+         System.out.println(i + " " + products.get(i));
+      }
+
+      System.out.println("Select number");
+
+      int prodNum = scanner.nextInt();
+
+      while(prodNum < 0 || prodNum >= products.size()) {
+         System.out.println("Invalid Number. Please input valid option");
+         prodNum = scanner.nextInt();
+      }
+
+      return getProduct(products.get(prodNum).getUPC());
+   }// End of the getProduct method
+
+   public Products getProduct(String UPC){
+      return this.entityManager.createNamedQuery("ReturnProduct", Products.class).setParameter(1, UPC).getSingleResult();
+   }
 
    /**Checks if the product has the quantity. it returns the product back if it does, else returns null
     * Precondition: We should already have the product object we want, but we pass in upc with product.getUPC
     * RETURNS NULL IF QUANITY IS TOO HIGH. RETURNS THE PRODUCT FROM DATABASE BACK IF QUANITY IS FINE*/
-   public Products checkInStock (String UPC, int quantity) {
-      // Run the native query that we defined in the Products entity to find the right style.
-      List<Products> products = this.entityManager.createNamedQuery("CheckInStock",
-              Products.class).setParameter(1, UPC).setParameter(2,quantity).getResultList();
-      if (products.size() == 0) {
-         // Invalid style name passed in.
-         return null;
-      } else {
-         // Return the style object that they asked for.
-         return products.get(0);
-      }
-   }// End of the getStyle method
+   public boolean checkInStock (String UPC, int quantity) {
+      // Gets the product
+      Products products = this.entityManager.createNamedQuery("ReturnProduct",
+              Products.class).setParameter(1, UPC).getSingleResult();
 
-
-
+      return quantity <= products.getUnits_in_stock();
+   }// End of the checkInStock method
 
    /**Puts a list of all current customers in database and lets you pick one.
     * Returns a single customer object*/
-   public Customers getAllCustomers()
+   public Customers selectCustomer(Scanner scanner)
    {
+      // Query for all customers
       List<Customers> customers = this.entityManager.createNamedQuery("ReturnCustomers",
               Customers.class).getResultList();
 
-      if(customers.size() == 0)
-      {
-         return null;
-      }
       System.out.println("Customers:");
       for (int i  = 0; i < customers.size(); i++)
       {
          System.out.println(i + " " + customers.get(i));
       }
 
-      Scanner in = new Scanner(System.in);
-      int cust = -1;
-      while(cust < 0 || cust >= customers.size()) {
-         System.out.println("Enter Customer: ");
-         cust = in.nextInt();
+      System.out.println("Hi: Who are you: Select number");
+
+      int custNum = scanner.nextInt();
+
+      while(custNum < 0 || custNum >= customers.size()) {
+         System.out.println("Invalid Number. Please input valid customer number");
+         custNum = scanner.nextInt();
       }
-      System.out.println(cust + ": " + customers.get(cust));
-      return customers.get(cust);
+
+      return getCustomer(customers.get(custNum).getCustomer_id());
+   }
+
+   public Customers getCustomer(long custNum){
+      return this.entityManager.createNamedQuery("GetCustomer", Customers.class).setParameter(1, custNum).getSingleResult();
    }
 
    /**Puts a list of all current products in database and lets you pick one.
     * Returns a single product object*/
-   public Products getAllProducts(List<Products> productsInOrder)
+   public Products displayAllProducts(List<Products> productsInOrder)
    {
       List<Products> products = this.entityManager.createNamedQuery("ReturnProducts",
               Products.class).getResultList();
@@ -382,7 +383,7 @@ public class CustomerOrders {
 
    /**Takes in a customer and creates an Order object with constructor and localdate and time with soldby person
     * Right now it mostly has default params tbh.
-    * REturns Order object back*/
+    * Returns Order object back*/
    public Orders getOrderTime(Customers cust)
    {
       //literally just defaults to current date and time. kind of confusing what he asked for us to do.
@@ -416,6 +417,4 @@ public class CustomerOrders {
       return new Orders(cust,currentDate,"Shirley");
 
    }
-
-
 } // End of CustomerOrders class

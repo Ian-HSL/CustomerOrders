@@ -21,6 +21,14 @@ import java.util.Objects;
         resultClass = Customers.class
 )
 
+@NamedNativeQuery(
+        name="GetCustomer",
+        query = "SELECT * " +
+                "FROM CUSTOMERS " +
+                "WHERE customer_id = ?",
+        resultClass = Customers.class
+)
+
 @Entity
 // I could have avoided uniqueConstraints and just done
 // one constraint, but this was more fun.
@@ -31,7 +39,7 @@ public class Customers {
     @Id
     @GeneratedValue(strategy=GenerationType.AUTO)
     /** Surrogate key for customer.  We don't want to
-    migrate last name, first name, & phone all over the place.
+     migrate last name, first name, & phone all over the place.
      */
     private long customer_id;
     @Column(nullable=false, length = 64)

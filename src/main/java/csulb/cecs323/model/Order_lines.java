@@ -42,14 +42,14 @@ public class Order_lines {
     private Products product;
     @Column(nullable=false)
     /** The number of this item in this order.  If the customer
-    changes their mind and wants more of this item, we come
-    back to this row and update the quantity.
+     changes their mind and wants more of this item, we come
+     back to this row and update the quantity.
      */
     private int quantity;
     @Column(nullable = false)
     /** The price of this item FOR THIS ORDER.  The customer might
-    have scored a discount from the unit_list_price for this
-    product that is only in effect for this sale.
+     have scored a discount from the unit_list_price for this
+     product that is only in effect for this sale.
      */
     private double unit_sale_price;
 
@@ -83,6 +83,23 @@ public class Order_lines {
 
     public void setUnit_sale_price(double unit_sale_price) {
         this.unit_sale_price = unit_sale_price;
+    }
+
+    public Order_lines(){}
+
+    public Order_lines(Orders orders, Products products, int quantity, double unit_sale_price){
+        this.order = orders;
+        this.product = products;
+        this.quantity = quantity;
+        this.unit_sale_price = unit_sale_price;
+    }
+
+    @Override
+    public String toString(){
+        return  "Order: " + this.getOrder() +
+                ", Product: " + this.getProduct() +
+                ", Quantity: " + this.getQuantity() +
+                ", Unit Sale Price: " + this.getUnit_sale_price();
     }
 
     public boolean equals (Object o) {

@@ -17,20 +17,13 @@ import javax.persistence.NamedNativeQuery;
  */
 
 @NamedNativeQuery(
-        name="CheckInStock",
-        query = "SELECT * " +
-                "FROM   PRODUCTS " +
-                "WHERE  UPC = ? AND units_in_stock >= ? ",
-        resultClass = Products.class
-)
-
-@NamedNativeQuery(
         name="ReturnProduct",
         query = "SELECT * " +
                 "FROM   PRODUCTS " +
                 "WHERE  UPC = ? ",
         resultClass = Products.class
 )
+
 @NamedNativeQuery(
         name="ReturnProducts",
         query = "SELECT * " +
@@ -39,7 +32,15 @@ import javax.persistence.NamedNativeQuery;
         resultClass = Products.class
 )
 
+@NamedNativeQuery(
+        name="CheckInStock",
+        query = "SELECT * " +
+                "FROM   PRODUCTS " +
+                "WHERE  UPC = ? AND units_in_stock >= ? ",
+        resultClass = Products.class
+)
 /** Something that we stock, that the customer can order. */
+@Entity
 public class Products {
     @Id
     @Column(nullable = false, length = 30)
