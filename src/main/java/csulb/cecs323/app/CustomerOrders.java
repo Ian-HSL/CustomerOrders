@@ -22,6 +22,7 @@ import javax.persistence.Persistence;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Scanner;
 import java.util.logging.Logger;
 
@@ -114,8 +115,6 @@ public class CustomerOrders {
          if(terminate == 0) {
             //THESE SHOULD NOT BE PERSISTED EVER. TEMPORARY PARALLEL ARRAYS FOR FINAL ORDERED PRODUCTS/ORDERLINES.
             List<Products> orderProducts = new ArrayList<Products>();
-            List<Integer> orderQuantity = new ArrayList<Integer>();
-            List<Double> orderUnitPrice = new ArrayList<Double>();
             List<Order_lines> order_lines = new ArrayList<Order_lines>();
 
             // Commit the changes so that the new data persists and is visible to other users.
@@ -139,21 +138,17 @@ public class CustomerOrders {
                // Select product
                Products productForOrder = customerOrders.selectProduct(in);
 
-               //Testing Check In Stock function and that you can print out product list again with missing product since
-               //you already ordered it.
-
                // Get quantity
                System.out.println("Enter Quantity: ");
                int quantity = in.nextInt();
 
                // Validate quantity
                if (!customerOrders.checkInStock(productForOrder.getUPC(), quantity)) {
-                  //ask if they want the rest
+                  // Display Choices
                   System.out.println("0: Want All");
-                  //ask if they don't want the product
                   System.out.println("1: Want None");
-                  //ask to abort
                   System.out.println("2: Don't want to order anything anymore");
+
                   //SELECT OPTION. ?switch case> >.> or something.
                   System.out.println("Select:");
                   int option = in.nextInt();
@@ -161,9 +156,8 @@ public class CustomerOrders {
                      //want all
                      case 0: {
                         System.out.println("I'm putting in all...");
-                        orderProducts.add(productForOrder);
-                        orderQuantity.add(productForOrder.getUnits_in_stock());
-                        orderUnitPrice.add(3.00);
+                        quantity = productForOrder.getUnits_in_stock();
+                        customerOrders.addOrderLine(tx, order_lines, new Order_lines(order, productForOrder, quantity, productForOrder.getUnit_list_price()));
                         break;
                      }
                      //want none
@@ -175,30 +169,16 @@ public class CustomerOrders {
                      //want to stop ordering completely
                      case 2: {
                         System.out.println("Deleting your order...");
-                        orderProducts.clear();
-                        orderQuantity.clear();
-                        orderUnitPrice.clear();
                         productsGo = false;
+                        go = false;
                         break;
-                        //go = false;
                      }
                   }
                } else {
                   System.out.println("AHHHHHH! it's less");
 
-                  //DO NOT PERSIST THIS STUFF. THESE ARE PARALLEL ARRAYS. MAN.
-                  //USE INFO TO PERSIST NEW PRODUCTS MADE FROM THIS INFO. (Don't persist the products?)
-                  //Not sure if we're adding money here.
+                  customerOrders.addOrderLine(tx, order_lines, new Order_lines(order, productForOrder, quantity, productForOrder.getUnit_list_price()));
                }
-
-               // Create order lines
-               order_lines.add(new Order_lines(order, productForOrder, quantity, productForOrder.getUnit_list_price()));
-
-               tx.begin();
-
-               productForOrder.setUnits_in_stock(productForOrder.getUnits_in_stock() - quantity);
-
-               tx.commit();
 
                System.out.println("Order another product? 0(no) 1(yes)");
                int endProductCycle = in.nextInt();
@@ -360,5 +340,37 @@ public class CustomerOrders {
          currentDate = LocalDateTime.now();
       }
       return new Orders(cust,currentDate,"Shirley");
+   }
+
+   public void addOrderLine(EntityTransaction tx, List<Order_lines> orderLines, Order_lines orderLine){
+      // if the product is in list of orderlines, just add to the orderline quantity
+      int position = isInOrder(orderLines, orderLine.getProduct().getUPC());
+      if(position >= 0){
+         Order_lines line = orderLines.get(position);
+         line.setQuantity(line.getQuantity() + orderLine.getQuantity());
+      } else {
+         orderLines.add(orderLine);
+      }
+
+      Products product = orderLine.getProduct();
+
+      tx.begin();
+
+      product.setUnits_in_stock(product.getUnits_in_stock() - orderLine.getQuantity());
+
+      tx.commit();
+   }
+
+   public int isInOrder(List<Order_lines> orderlines, String UPC){
+      int i = 0;
+      for (Order_lines orderline : orderlines){
+         if(Objects.equals(orderline.getProduct().getUPC(), UPC)){
+            return i;
+         }
+
+         i++;
+      }
+
+      return -1;
    }
 } // End of CustomerOrders class
