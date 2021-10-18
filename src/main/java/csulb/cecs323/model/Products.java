@@ -13,8 +13,6 @@ import javax.persistence.*;
  *
  */
 
-@SqlResultSetMapping(name = "updateResult", columns = {@ColumnResult(name = "count")})
-
 @NamedNativeQuery(
         name="ReturnProduct",
         query = "SELECT * " +
@@ -37,14 +35,6 @@ import javax.persistence.*;
                 "FROM   PRODUCTS " +
                 "WHERE  UPC = ? AND units_in_stock >= ? ",
         resultClass = Products.class
-)
-
-@NamedNativeQuery(
-        name="ChangeStockNumber",
-        query = "UPDATE products " +
-                "SET units_in_stock = ? " +
-                "WHERE UPC = ? ",
-        resultSetMapping = "updateResult"
 )
 
 /** Something that we stock, that the customer can order. */

@@ -112,8 +112,6 @@ public class CustomerOrders {
          System.out.println("(0)Begin or (1)Exit program:");
          int terminate = in.nextInt();
          if(terminate == 0) {
-            // tx.begin();
-
             //THESE SHOULD NOT BE PERSISTED EVER. TEMPORARY PARALLEL ARRAYS FOR FINAL ORDERED PRODUCTS/ORDERLINES.
             List<Products> orderProducts = new ArrayList<Products>();
             List<Integer> orderQuantity = new ArrayList<Integer>();
@@ -132,7 +130,6 @@ public class CustomerOrders {
             boolean productsGo = true;
 
             while (productsGo) {
-
                if(!order_lines.isEmpty()){
                   for(Order_lines orderLine : order_lines){
                      System.out.println(orderLine.getProduct().getProd_name() + " " + orderLine.getQuantity() + " " + orderLine.getUnit_sale_price());
@@ -141,15 +138,6 @@ public class CustomerOrders {
 
                // Select product
                Products productForOrder = customerOrders.selectProduct(in);
-               //TESTING IF I CAN POPULATE ORDERLINES AND STUFF
-//            customerOrders.entityManager.persist(order);
-//            Order_lines o = new Order_lines();
-//            o.setProduct(productForOrder);
-//            o.setOrder(order);
-//            o.setQuantity(10);
-//            o.setUnit_sale_price(3.2);
-//            System.out.println(o);
-//            customerOrders.entityManager.persist(o);
 
                //Testing Check In Stock function and that you can print out product list again with missing product since
                //you already ordered it.
@@ -193,19 +181,24 @@ public class CustomerOrders {
                         productsGo = false;
                         break;
                         //go = false;
-                        //tx.commit();
                      }
                   }
                } else {
                   System.out.println("AHHHHHH! it's less");
+
                   //DO NOT PERSIST THIS STUFF. THESE ARE PARALLEL ARRAYS. MAN.
                   //USE INFO TO PERSIST NEW PRODUCTS MADE FROM THIS INFO. (Don't persist the products?)
                   //Not sure if we're adding money here.
-                  orderUnitPrice.add(3.00);
                }
 
                // Create order lines
                order_lines.add(new Order_lines(order, productForOrder, quantity, productForOrder.getUnit_list_price()));
+
+               tx.begin();
+
+               productForOrder.setUnits_in_stock(productForOrder.getUnits_in_stock() - quantity);
+
+               tx.commit();
 
                System.out.println("Order another product? 0(no) 1(yes)");
                int endProductCycle = in.nextInt();
@@ -213,15 +206,16 @@ public class CustomerOrders {
                // Customer is finished with ordering products
                if (endProductCycle == 0) {
                   productsGo = false;
-                  if (!orderProducts.isEmpty()) {
+                  if (!order_lines.isEmpty()) {
                      tx.begin();
                      // Persist order to table
+                     System.out.println("Persisting order");
                      customerOrders.entityManager.persist(order);
                      tx.commit();
 
                      // Change the product stock in database
                      for (Order_lines line : order_lines) {
-                        customerOrders.updateProductStock(line.getProduct().getUPC(), line.getProduct().getUnits_in_stock() - line.getQuantity());
+
                      }
                   }
                }
@@ -231,10 +225,7 @@ public class CustomerOrders {
          {
             go = false;
          }
-
-         //tx.commit();
       }//end of ordering loop
-      tx.commit();
       LOGGER.fine("End of Transaction");
    } // End of the main method
 
@@ -335,42 +326,6 @@ public class CustomerOrders {
       return this.entityManager.createNamedQuery("GetCustomer", Customers.class).setParameter(1, custNum).getSingleResult();
    }
 
-   /**Puts a list of all current products in database and lets you pick one.
-    * Returns a single product object*/
-   public Products selectProduct(List<Products> productsInOrder)
-   {
-      List<Products> products = this.entityManager.createNamedQuery("ReturnProducts",
-              Products.class).getResultList();
-      if(products.size() == 0)
-      {
-         return null;
-      }
-      System.out.println("Products:");
-      int count = 0;
-      for (int i  = 0; i < products.size(); i++)
-      {
-         //only prints out products that were not in the products array list passed in
-         //cause we technically are ordering /have ordered these currently.
-         if(productsInOrder.contains(products.get(i)) )
-         {}
-         else {
-            System.out.println(i + " " + products.get(i));
-            count++;
-         }
-      }
-
-      //asks for product number from list in console.
-      Scanner in = new Scanner(System.in);
-      int prod = -1;
-      while(prod < 0 || prod >= products.size()) {
-         System.out.println("Enter Product: ");
-         prod = in.nextInt();
-      }
-
-      System.out.println(prod + ": " + products.get(prod));
-      return products.get(prod);
-   }
-
    /**Takes in a customer and creates an Order object with constructor and localdate and time with soldby person
     * Right now it mostly has default params tbh.
     * Returns Order object back*/
@@ -405,12 +360,5 @@ public class CustomerOrders {
          currentDate = LocalDateTime.now();
       }
       return new Orders(cust,currentDate,"Shirley");
-   }
-
-   public void updateProductStock(String UPC, int newStockNumber)
-   {
-      this.entityManager.createNamedQuery("changeStockNumber", Products.class)
-              .setParameter(1, newStockNumber)
-              .setParameter(2, UPC).executeUpdate();
    }
 } // End of CustomerOrders class
