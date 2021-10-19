@@ -32,7 +32,7 @@ import java.util.Objects;
 @Entity
 // I could have avoided uniqueConstraints and just done
 // one constraint, but this was more fun.
-@Table(uniqueConstraints = {@UniqueConstraint(columnNames =
+@Table( uniqueConstraints = {@UniqueConstraint(columnNames =
         {"first_name", "last_name", "phone"})})
 /** A person, who has, or might, order products from us. */
 public class Customers {
@@ -59,8 +59,8 @@ public class Customers {
     private String phone;
 
     public Customers() {}
-    public Customers (String last_name, String first_name, String street,
-                      String zip, String phone) {
+    public Customers(String last_name, String first_name, String street,
+                     String zip, String phone) {
         this.last_name = last_name;
         this.first_name = first_name;
         this.street = street;

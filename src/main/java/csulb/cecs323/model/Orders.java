@@ -42,10 +42,10 @@ public class Orders {
     /** The name of the sales person who sold the goods. */
     private String sold_by;
 
-    public Orders () {}
+    public Orders() {}
 
-    public Orders (Customers customer, LocalDateTime order_date,
-                   String sold_by) {
+    public Orders(Customers customer, LocalDateTime order_date,
+                  String sold_by) {
         this.customer = customer;
         this.order_date = order_date;
         this.sold_by = sold_by;

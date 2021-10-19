@@ -16,15 +16,16 @@ import javax.persistence.*;
 @NamedNativeQuery(
         name="ReturnProduct",
         query = "SELECT * " +
-                "FROM   PRODUCTS " +
+                "FROM   products " +
                 "WHERE  UPC = ? ",
         resultClass = Products.class
 )
 
 @NamedNativeQuery(
-        name="ReturnProducts",
+        name="GetInventory",
         query = "SELECT * " +
-                "FROM   PRODUCTS "
+                "FROM   PRODUCTS " +
+                "WHERE NOT units_in_stock = 0"
         ,
         resultClass = Products.class
 )
@@ -35,6 +36,16 @@ import javax.persistence.*;
                 "FROM   PRODUCTS " +
                 "WHERE  UPC = ? AND units_in_stock >= ? ",
         resultClass = Products.class
+)
+
+@SqlResultSetMapping(name = "updateResult", columns = {@ColumnResult(name = "count")})
+
+@NamedNativeQuery(
+        name = "UpdateInventory",
+        query = "UPDATE products " +
+                "SET units_in_stock = ?" +
+                "WHERE UPC = ? ",
+        resultSetMapping = "updateResult"
 )
 
 /** Something that we stock, that the customer can order. */

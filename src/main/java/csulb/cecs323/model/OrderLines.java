@@ -31,7 +31,7 @@ me that would be the case.
 @Entity
 @IdClass(Order_lines_pk.class)
 /** The occurrence of a single Product within a single Order */
-public class Order_lines {
+public class OrderLines {
     @Id
     @ManyToOne
     /** The order that this line belongs to. */
@@ -85,9 +85,9 @@ public class Order_lines {
         this.unit_sale_price = unit_sale_price;
     }
 
-    public Order_lines(){}
+    public OrderLines(){}
 
-    public Order_lines(Orders orders, Products products, int quantity, double unit_sale_price){
+    public OrderLines(Orders orders, Products products, int quantity, double unit_sale_price){
         this.order = orders;
         this.product = products;
         this.quantity = quantity;
@@ -109,7 +109,7 @@ public class Order_lines {
         } else if (o == null || getClass() != o.getClass()) {
             results = false;
         } else {
-            Order_lines ol = (Order_lines) o;
+            OrderLines ol = (OrderLines) o;
             results = this.getOrder().equals (ol.getOrder()) &&
                     this.getProduct() == ol.getProduct();
         }
