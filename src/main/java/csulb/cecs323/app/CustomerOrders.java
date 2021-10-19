@@ -205,6 +205,43 @@ public class CustomerOrders {
          {
             go = false;
          }
+
+         System.out.println("Here is your current order total: $" + totalOrder);
+         System.out.println("Do you want to (0)Place order/ (1)Abort?");
+         //Emily parts
+         //If abort remember to add this statement in to reset the total for the other customer
+               /*
+               //reset totalOrder for other customers
+                        totalOrder = 0;
+                */
+         int response = in.nextInt();
+         if(response == 1)
+         {
+            System.out.println("Order not placed");
+            orderProducts.clear();
+            orderQuantity.clear();
+            orderUnitPrice.clear();
+            //abort transaction
+            customerOrders.entityManager.clear();
+            System.out.println("Your cart is empty: ");
+            System.out.println("ITEM: ");
+            orderProducts.forEach(System.out::println);
+            System.out.println("QUANTITY: ");
+            orderQuantity.forEach(System.out::println);
+            totalOrder = 0.0;
+
+
+         }
+         if(response == 0)
+         {
+            System.out.println("Order is placed");
+            System.out.println("Here is your cart");
+            System.out.println("ITEM: ");
+            orderProducts.forEach(System.out::println);
+            System.out.println("QUANTITY: ");
+            orderQuantity.forEach(System.out::println);
+
+         }
       }//end of ordering loop
       LOGGER.fine("End of Transaction");
    } // End of the main method
